@@ -13,6 +13,7 @@ public interface FuIcons {
     Icon FU_SH = IconLoader.getIcon("icon/sh.svg", FuIcons.class);
     Icon FU_SZ = IconLoader.getIcon("icon/sz.svg", FuIcons.class);
     Icon FU_HK = IconLoader.getIcon("icon/hk.svg", FuIcons.class);
+    Icon FU_US = IconLoader.getIcon("icon/us.svg", FuIcons.class);
     Icon FU_STOCK = IconLoader.getIcon("icon/stock.svg", FuIcons.class);
     Icon FU_UNSHARE = IconLoader.getIcon("icon/unshare.svg", FuIcons.class);
     Icon FU_STOCK_INFO_GROUP = IconLoader.getIcon("icon/stock_info.svg", FuIcons.class);

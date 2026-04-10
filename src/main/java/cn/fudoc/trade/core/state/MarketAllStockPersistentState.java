@@ -42,6 +42,10 @@ public class MarketAllStockPersistentState implements PersistentStateComponent<M
      * 香港股票索引
      */
     private StockIndex HK;
+    /**
+     * 美国股票索引
+     */
+    private StockIndex US;
 
     public static MarketAllStockPersistentState getInstance() {
         return ApplicationManager.getApplication().getService(MarketAllStockPersistentState.class);
@@ -59,6 +63,9 @@ public class MarketAllStockPersistentState implements PersistentStateComponent<M
         }
         if (Objects.nonNull(HK)) {
             matchList.addAll(HK.match(keyword));
+        }
+        if (Objects.nonNull(US)) {
+            matchList.addAll(US.match(keyword));
         }
         //取匹配度最高的10条返回
         return matchList.stream().sorted(Comparator.comparing(MatchResult::getSimilarity).reversed()).limit(10)

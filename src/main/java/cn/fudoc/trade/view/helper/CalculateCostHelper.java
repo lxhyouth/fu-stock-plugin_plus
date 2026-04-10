@@ -232,6 +232,10 @@ public class CalculateCostHelper {
             return rate.getTransferSHRate();
         } else if (JYSEnum.SZ.equals(jysEnum)) {
             return rate.getTransferSZRate();
+        } else if (JYSEnum.HK.equals(jysEnum)) {
+            return rate.getHkRate();
+        } else if (JYSEnum.US.equals(jysEnum)) {
+            return rate.getUsRate();
         }
         return "0";
     }

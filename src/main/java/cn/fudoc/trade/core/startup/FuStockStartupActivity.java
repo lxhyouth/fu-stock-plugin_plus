@@ -42,8 +42,9 @@ public class FuStockStartupActivity implements ProjectActivity {
             if (Objects.isNull(updateTime) || (updateTime + ONE_DAY) < System.currentTimeMillis()) {
                 //触发更新
                 ZTApiService ztApiService = ApplicationManager.getApplication().getService(ZTApiService.class);
-                instance.setA(new StockIndex(ztApiService.marketA(), false));
-                instance.setHK(new StockIndex(ztApiService.marketHK(), true));
+                instance.setA(new StockIndex(ztApiService.marketA(), false, false));
+                instance.setHK(new StockIndex(ztApiService.marketHK(), true, false));
+                instance.setUS(new StockIndex(ztApiService.marketUS(), false, true));
                 instance.setUpdateTime(System.currentTimeMillis());
             }
 

@@ -38,6 +38,8 @@ public class StockInfo {
             return "sh" + this.code;
         } else if ("HK".equals(this.jys)) {
             return "hk" + this.code;
+        } else if ("US".equals(this.jys)) {
+            return "us" + this.code;
         }
         return this.code;
     }

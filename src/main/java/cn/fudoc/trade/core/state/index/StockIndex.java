@@ -17,6 +17,7 @@ import java.util.*;
 public class StockIndex {
 
     private boolean isHK;
+    private boolean isUS;
     /**
      * 代码映射 key:代码 value：股票信息
      */
@@ -35,13 +36,19 @@ public class StockIndex {
 
     public StockIndex(boolean isHK) {
         this.isHK = isHK;
+        this.isUS = false;
         this.codeMap = new HashMap<>();
         this.firstMap = new HashMap<>();
         this.nameMap = new HashMap<>();
     }
 
     public StockIndex(List<StockInfo> stockInfoList, boolean isHK) {
+        this(stockInfoList, isHK, false);
+    }
+
+    public StockIndex(List<StockInfo> stockInfoList, boolean isHK, boolean isUS) {
         this.isHK = isHK;
+        this.isUS = isUS;
         if (CollectionUtils.isNotEmpty(stockInfoList)) {
             this.codeMap = new HashMap<>(stockInfoList.size());
             this.firstMap = new HashMap<>(stockInfoList.size() * 2);
@@ -79,8 +86,17 @@ public class StockIndex {
 
         List<MatchResult> matchResultList = new ArrayList<>();
         if (StringUtils.isNumeric(keyword)) {
-            int length = isHK ? 5 : 6;
-            if (keyword.length() == length) {
+            int length;
+            if (isHK) {
+                length = 5;
+            } else if (isUS) {
+                // 美股代码长度不固定，不做精确匹配
+                length = -1;
+            } else {
+                length = 6; // A股
+            }
+            
+            if (length > 0 && keyword.length() == length) {
                 StockInfo stockInfo = codeMap.get(keyword);
                 if (stockInfo != null) {
                     //完全匹配

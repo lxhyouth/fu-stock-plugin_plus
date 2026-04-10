@@ -12,6 +12,8 @@ public record StockInfoDTO(String group, String stockCode, String stockName) {
             return JYSEnum.SZ;
         } else if (this.stockCode.startsWith(JYSEnum.HK.getCode())) {
             return JYSEnum.HK;
+        } else if (this.stockCode.startsWith(JYSEnum.US.getCode())) {
+            return JYSEnum.US;
         }
         return JYSEnum.DEFAULT;
     }

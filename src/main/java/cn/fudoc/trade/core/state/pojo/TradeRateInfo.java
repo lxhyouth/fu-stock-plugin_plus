@@ -30,6 +30,16 @@ public class TradeRateInfo {
     private String transferSZRate;
 
     /**
+     * 港股交易费率
+     */
+    private String hkRate;
+
+    /**
+     * 美股交易费率
+     */
+    private String usRate;
+
+    /**
      * 其他费率
      */
     private String otherRate;

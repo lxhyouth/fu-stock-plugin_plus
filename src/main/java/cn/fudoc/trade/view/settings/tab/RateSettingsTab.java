@@ -31,6 +31,8 @@ public class RateSettingsTab implements SettingTab {
     private final JBTextField stampDutyRateField = new JBTextField();
     private final JBTextField transferSHRateField = new JBTextField();
     private final JBTextField transferSZRateField = new JBTextField();
+    private final JBTextField hkRateField = new JBTextField();
+    private final JBTextField usRateField = new JBTextField();
     private final JBTextField otherRateField = new JBTextField();
     private final JBTextField otherFeeField = new JBTextField();
 
@@ -82,10 +84,16 @@ public class RateSettingsTab implements SettingTab {
         FormPanelUtil.addRow(mainPanel, "过户费费率(沪A)", transferSHRateField);
         FormPanelUtil.addRow(mainPanel, "过户费费率(深A)", transferSZRateField);
 
-        //4、其他费率 默认0
+        //4、港股交易费率
+        FormPanelUtil.addRow(mainPanel, "港股交易费率", hkRateField);
+
+        //5、美股交易费率
+        FormPanelUtil.addRow(mainPanel, "美股交易费率", usRateField);
+
+        //6、其他费率 默认0
         FormPanelUtil.addRow(mainPanel, "其他费率", otherRateField);
 
-        //5、其他费用 默认0
+        //7、其他费用 默认0
         FormPanelUtil.addRow(mainPanel, "其他费用", otherFeeField);
 
         return mainPanel;
@@ -99,6 +107,8 @@ public class RateSettingsTab implements SettingTab {
             validRateField("印花税费率", stampDutyRateField);
             validRateField("过户费费率(沪A)", transferSHRateField);
             validRateField("过户费费率(深A)", transferSZRateField);
+            validRateField("港股交易费率", hkRateField);
+            validRateField("美股交易费率", usRateField);
             validRateField("其他费率", otherRateField);
             validRateField("券商其他费用佣金费率", otherFeeField);
         } catch (ValidException e) {
@@ -135,6 +145,8 @@ public class RateSettingsTab implements SettingTab {
         rate.setStampDutyRate(stampDutyRateField.getText().trim());
         rate.setTransferSHRate(transferSHRateField.getText().trim());
         rate.setTransferSZRate(transferSZRateField.getText().trim());
+        rate.setHkRate(hkRateField.getText().trim());
+        rate.setUsRate(usRateField.getText().trim());
         rate.setOtherRate(otherRateField.getText().trim());
         rate.setOtherFee(otherFeeField.getText().trim());
     }
@@ -157,6 +169,8 @@ public class RateSettingsTab implements SettingTab {
         String transferSZRate = rate.getTransferSZRate();
         transferSHRateField.setText(StringUtils.isBlank(transferSHRate) ? "0.00001" : transferSHRate);
         transferSZRateField.setText(StringUtils.isBlank(transferSZRate) ? "0.00001" : transferSZRate);
+        hkRateField.setText(rate.getHkRate());
+        usRateField.setText(rate.getUsRate());
         otherRateField.setText(rate.getOtherRate());
         otherFeeField.setText(rate.getOtherFee());
     }

@@ -18,6 +18,10 @@ public enum JYSEnum {
      * 香港交易所
      */
     HK("hk"),
+    /**
+     * 美国交易所
+     */
+    US("us"),
 
     DEFAULT("default"),
     ;

@@ -20,6 +20,7 @@ public class ZTApiServiceImpl implements ZTApiService {
 
     private static final String marketAUrl = "https://api.zhituapi.com/hs/list/all?token=";
     private static final String marketHKUrl = "https://api.zhituapi.com/hk/list/all?token=";
+    private static final String marketUSUrl = "https://api.zhituapi.com/us/list/all?token=";
 
 
     @Override
@@ -30,6 +31,11 @@ public class ZTApiServiceImpl implements ZTApiService {
     @Override
     public List<StockInfo> marketHK() {
         return getStockListByMarket(marketHKUrl);
+    }
+
+    @Override
+    public List<StockInfo> marketUS() {
+        return getStockListByMarket(marketUSUrl);
     }
 
     private List<StockInfo> getStockListByMarket(String marketUrl) {

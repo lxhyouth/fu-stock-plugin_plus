@@ -20,4 +20,9 @@ public interface ZTApiService {
      */
     List<StockInfo> marketHK();
 
+    /**
+     * 美股所有股票集合
+     */
+    List<StockInfo> marketUS();
+
 }
