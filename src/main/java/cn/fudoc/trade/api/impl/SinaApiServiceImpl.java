@@ -63,6 +63,10 @@ public class SinaApiServiceImpl implements SinaApiService {
         US_STOCK_CODE_MAP.put("usJNJ", "gb_jnj");        // 强生
         US_STOCK_CODE_MAP.put("usPFE", "gb_pfe");        // 辉瑞
         US_STOCK_CODE_MAP.put("usMRNA", "gb_mrna");      // Moderna
+
+        // 影视
+        US_STOCK_CODE_MAP.put("usIQ", "gb_iq");           // 爱奇艺
+
     }
 
     @Override
