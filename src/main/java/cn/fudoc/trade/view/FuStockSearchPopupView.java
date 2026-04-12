@@ -1,5 +1,6 @@
 package cn.fudoc.trade.view;
 
+import cn.fudoc.trade.api.SinaApiService;
 import cn.fudoc.trade.api.TencentApiService;
 import cn.fudoc.trade.api.data.RealStockInfo;
 import cn.fudoc.trade.api.data.StockInfo;
@@ -56,6 +57,7 @@ public class FuStockSearchPopupView {
     private final AtomicBoolean pinStatus = new AtomicBoolean(false);
 
     private final TencentApiService tencentApiService = ApplicationManager.getApplication().getService(TencentApiService.class);
+    private final SinaApiService sinaApiService = ApplicationManager.getApplication().getService(SinaApiService.class);
 
     public FuStockSearchPopupView(StockTableView stockTableView) {
         this.stockTableView = stockTableView;
@@ -248,12 +250,29 @@ public class FuStockSearchPopupView {
     private void toggleStockAddStatus(StockInfo stock) {
         stock.setAdd(!stock.isAdd());
         if (stock.isAdd()) {
-            //添加股票
-            List<RealStockInfo> realStockInfos = tencentApiService.stockList(Sets.newHashSet(stock.getStockCode()));
+            // 根据市场选择API：美股用新浪，A股/港股用腾讯
+            List<RealStockInfo> realStockInfos;
+            String stockCode = stock.getStockCode();
+            
+            System.out.println("[DEBUG Add Stock] Adding stock: " + stockCode + " (" + stock.getName() + ")");
+            
+            if (stockCode.startsWith("us")) {
+                // 美股使用新浪API
+                System.out.println("[DEBUG Add Stock] Using Sina API for US stock");
+                realStockInfos = sinaApiService.stockList(Sets.newHashSet(stockCode));
+            } else {
+                // A股/港股使用腾讯API
+                System.out.println("[DEBUG Add Stock] Using Tencent API for CN/HK stock");
+                realStockInfos = tencentApiService.stockList(Sets.newHashSet(stockCode));
+            }
+            
             if (CollectionUtils.isEmpty(realStockInfos)) {
                 FuNotification.notifyWarning(stock.getStockCode() + "股票不存在");
                 return;
             }
+            
+            System.out.println("[DEBUG Add Stock] Successfully added: " + realStockInfos.get(0).getStockName());
+            
             //issue #11 MAC弹框问题修复
             if (GroupTypeEnum.STOCK_HOLD.equals(this.stockTableView.getTabEnum())) {
                 HoldingsStockState.getInstance().add(this.stockTableView.getTabName(), stock.getStockCode(), "0", 0);
@@ -261,6 +280,7 @@ public class FuStockSearchPopupView {
             this.stockTableView.addStock(realStockInfos.getFirst());
         } else {
             // 移除股票（确保在 EDT 线程）
+            System.out.println("[DEBUG Remove Stock] Removing stock: " + stock.getStockCode());
             this.stockTableView.removeStock(stock.getStockCode());
         }
     }

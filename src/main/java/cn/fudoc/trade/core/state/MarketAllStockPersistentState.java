@@ -67,9 +67,18 @@ public class MarketAllStockPersistentState implements PersistentStateComponent<M
         if (Objects.nonNull(US)) {
             matchList.addAll(US.match(keyword));
         }
-        //取匹配度最高的10条返回
-        return matchList.stream().sorted(Comparator.comparing(MatchResult::getSimilarity).reversed()).limit(10)
-                .map(MatchResult::getStockInfo).collect(Collectors.toList());
+        //取匹配度最高的10条返回，并按股票代码去重
+        return matchList.stream()
+                .sorted(Comparator.comparing(MatchResult::getSimilarity).reversed())
+                .collect(Collectors.toMap(
+                        result -> result.getStockInfo().getStockCode(), // 以股票代码为key去重
+                        result -> result,
+                        (existing, replacement) -> existing // 保留第一个（相似度最高的）
+                ))
+                .values().stream()
+                .limit(10)
+                .map(MatchResult::getStockInfo)
+                .collect(Collectors.toList());
     }
 
 

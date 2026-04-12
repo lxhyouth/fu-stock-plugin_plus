@@ -38,4 +38,12 @@ public class RealStockInfo {
      * 成交额 单位
      */
     private String volumeUnit;
+    /**
+     * 最高价
+     */
+    private String highPrice;
+    /**
+     * 最低价
+     */
+    private String lowPrice;
 }

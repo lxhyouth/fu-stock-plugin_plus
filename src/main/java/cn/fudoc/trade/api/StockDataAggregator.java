@@ -2,6 +2,7 @@ package cn.fudoc.trade.api;
 
 
 import cn.fudoc.trade.api.data.RealStockInfo;
+import cn.fudoc.trade.api.impl.ITickApiServiceImpl;
 import cn.fudoc.trade.core.common.enumtype.JYSEnum;
 import com.intellij.openapi.application.ApplicationManager;
 import lombok.extern.slf4j.Slf4j;
@@ -16,17 +17,19 @@ import java.util.stream.Collectors;
  * 
  * 策略：
  * - A股/港股: 优先使用腾讯API，备选新浪API
- * - 美股: 优先使用新浪API，备选腾讯API
+ * - 美股: 优先使用 iTick API，备选新浪API，最后腾讯API
  */
 @Slf4j
 public class StockDataAggregator {
 
     private final TencentApiService tencentApiService;
     private final SinaApiService sinaApiService;
+    private final ITickApiService iTickApiService;
 
     public StockDataAggregator() {
         this.tencentApiService = ApplicationManager.getApplication().getService(TencentApiService.class);
         this.sinaApiService = ApplicationManager.getApplication().getService(SinaApiService.class);
+        this.iTickApiService = new ITickApiServiceImpl();
     }
 
     /**
@@ -103,23 +106,48 @@ public class StockDataAggregator {
     }
 
     /**
-     * 获取美股数据（新浪API优先）
+     * 获取美股数据（iTick API 优先）
      */
     private List<RealStockInfo> getUSStockData(Set<String> codes) {
+        // 第一优先级：iTick API
         try {
-            log.debug("使用新浪API获取美股数据: {}", codes);
-            List<RealStockInfo> results = sinaApiService.stockList(codes);
+            System.out.println("[DEBUG Aggregator] Trying iTick API for US stocks: " + codes);
+            List<RealStockInfo> results = iTickApiService.stockList(codes);
             
             if (results != null && !results.isEmpty()) {
-                log.debug("新浪API成功获取{}条美股数据", results.size());
+                System.out.println("[DEBUG Aggregator] iTick API success: " + results.size() + " stocks");
                 return results;
             }
             
-            // 如果新浪API失败，尝试腾讯API
-            log.warn("新浪API获取美股数据为空，尝试腾讯API");
+            System.out.println("[DEBUG Aggregator] iTick API returned empty, trying Sina API");
+        } catch (Exception e) {
+            System.err.println("[ERROR Aggregator] iTick API failed: " + e.getMessage());
+            log.warn("iTick API 获取美股数据失败，尝试新浪API", e);
+        }
+        
+        // 第二优先级：新浪 API
+        try {
+            System.out.println("[DEBUG Aggregator] Trying Sina API for US stocks: " + codes);
+            List<RealStockInfo> results = sinaApiService.stockList(codes);
+            
+            if (results != null && !results.isEmpty()) {
+                System.out.println("[DEBUG Aggregator] Sina API success: " + results.size() + " stocks");
+                return results;
+            }
+            
+            System.out.println("[DEBUG Aggregator] Sina API returned empty, trying Tencent API");
+        } catch (Exception e) {
+            System.err.println("[ERROR Aggregator] Sina API failed: " + e.getMessage());
+            log.warn("新浪API 获取美股数据失败，尝试腾讯API", e);
+        }
+        
+        // 第三优先级：腾讯 API（备用）
+        try {
+            System.out.println("[DEBUG Aggregator] Trying Tencent API for US stocks: " + codes);
             return tencentApiService.stockList(codes);
         } catch (Exception e) {
-            log.error("获取美股数据失败", e);
+            System.err.println("[ERROR Aggregator] Tencent API failed: " + e.getMessage());
+            log.error("所有 API 获取美股数据均失败", e);
             return Collections.emptyList();
         }
     }

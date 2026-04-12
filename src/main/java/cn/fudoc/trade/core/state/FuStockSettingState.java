@@ -47,6 +47,12 @@ public class FuStockSettingState implements PersistentStateComponent<FuStockSett
      */
     private Map<String, Float> fontSizeMap = new HashMap<>();
 
+    /**
+     * iTick API Token（用于美股数据）
+     * 注册地址: https://itick.io
+     */
+    private String iTickApiToken = "";
+
     public void addFont(FuPosition fuPosition,float fontSize){
         fontSizeMap.put(fuPosition.getCode(), fontSize);
     }
@@ -54,6 +60,14 @@ public class FuStockSettingState implements PersistentStateComponent<FuStockSett
     public Float getFontSize(FuPosition fuPosition){
         Float fontSize = fontSizeMap.get(fuPosition.getCode());
         return Objects.isNull(fontSize) ? fuPosition.getDefaultSize() : fontSize;
+    }
+
+    public String getITickApiToken() {
+        return iTickApiToken;
+    }
+
+    public void setITickApiToken(String iTickApiToken) {
+        this.iTickApiToken = iTickApiToken;
     }
 
 

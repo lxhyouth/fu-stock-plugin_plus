@@ -1,5 +1,6 @@
 package cn.fudoc.trade.view.table;
 
+import cn.fudoc.trade.api.StockDataAggregator;
 import cn.fudoc.trade.api.TencentApiService;
 import cn.fudoc.trade.api.data.RealStockInfo;
 import cn.fudoc.trade.core.common.enumtype.FuPosition;
@@ -42,6 +43,7 @@ public abstract class AbstractStockTableView implements StockTableView, TableLis
     protected final TableHelper tableHelper;
 
     protected TencentApiService tencentApiService = ApplicationManager.getApplication().getService(TencentApiService.class);
+    protected StockDataAggregator stockDataAggregator = new StockDataAggregator();
 
     protected abstract boolean isHide();
 
@@ -106,16 +108,26 @@ public abstract class AbstractStockTableView implements StockTableView, TableLis
 
     @Override
     public void reloadAllStock(String tag) {
-        List<RealStockInfo> realStockInfos = tencentApiService.stockList(getStockCodes());
+        System.out.println("[DEBUG Reload] Reloading stocks for tab: " + getTabName() + ", codes: " + getStockCodes());
+        
+        // 使用 StockDataAggregator 智能路由：美股用新浪，A股/港股用腾讯
+        List<RealStockInfo> realStockInfos = stockDataAggregator.getStockData(getStockCodes());
+        
+        System.out.println("[DEBUG Reload] Got " + (realStockInfos != null ? realStockInfos.size() : 0) + " stocks from API");
+        
         if (CollectionUtils.isEmpty(realStockInfos)) {
+            System.out.println("[DEBUG Reload] No stock data returned, skipping update");
             return;
         }
+        
         // 清空现有数据
         tableModel.setRowCount(0);
         realStockInfos.forEach(this::addStock);
         lastUpdateTime = DateUtil.now();
         updateTipTag(tag);
         tableDataChanged();
+        
+        System.out.println("[DEBUG Reload] Successfully reloaded " + realStockInfos.size() + " stocks");
     }
 
     @Override

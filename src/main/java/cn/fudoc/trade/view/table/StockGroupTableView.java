@@ -16,7 +16,7 @@ import java.util.Vector;
 public class StockGroupTableView extends AbstractStockTableView {
 
 
-    private static final String[] stockTableColumn = {"股票代码", "股票名称", "当前价格", "涨跌幅(%)", "成交额"};
+    private static final String[] stockTableColumn = {"股票代码", "股票名称", "当前价格", "涨跌幅(%)", "最高价", "最低价", "成交额"};
     private static final List<Integer> colorColumns = Lists.newArrayList(3);
     private final StockGroupPersistentState state;
 
@@ -25,7 +25,7 @@ public class StockGroupTableView extends AbstractStockTableView {
         this.state = StockGroupPersistentState.getInstance();
         init(this.state.getStockCodes(groupName()));
         stockTable.setDefaultRenderer(Object.class, new StockColorTableCellRenderer(colorColumns));
-        stockTable.setRowSorter(getSorter(Lists.newArrayList(2,3,4)));
+        stockTable.setRowSorter(getSorter(Lists.newArrayList(2,3,4,5,6)));
     }
 
     @Override
@@ -61,6 +61,8 @@ public class StockGroupTableView extends AbstractStockTableView {
         vector.add(realStockInfo.getStockName());
         vector.add(realStockInfo.getCurrentPrice());
         vector.add(realStockInfo.getIncreaseRate() + "%");
+        vector.add(realStockInfo.getHighPrice() != null ? realStockInfo.getHighPrice() : "--");
+        vector.add(realStockInfo.getLowPrice() != null ? realStockInfo.getLowPrice() : "--");
         vector.add(realStockInfo.getVolume() + " " + realStockInfo.getVolumeUnit());
         return vector;
     }

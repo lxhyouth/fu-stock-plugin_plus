@@ -1,5 +1,6 @@
 package cn.fudoc.trade.view.settings;
 
+import cn.fudoc.trade.view.settings.tab.APISettingTab;
 import cn.fudoc.trade.view.settings.tab.CNMappingSettingTab;
 import cn.fudoc.trade.view.settings.tab.RateSettingsTab;
 import cn.fudoc.trade.view.settings.tab.SettingTab;
@@ -35,6 +36,10 @@ public class FuStockSettingDialog extends DialogWrapper {
      * 外观设置tab
      */
     private UISettingTab uiSettingTab;
+    /**
+     * API配置tab
+     */
+    private APISettingTab apiSettingTab;
 
     public FuStockSettingDialog(Project project) {
         this(project, null);
@@ -55,6 +60,7 @@ public class FuStockSettingDialog extends DialogWrapper {
         rateSettingsTab.submit();
         cnMappingSettingTab.submit();
         uiSettingTab.submit();
+        apiSettingTab.submit();
         super.doOKAction();
     }
 
@@ -62,9 +68,11 @@ public class FuStockSettingDialog extends DialogWrapper {
         this.rateSettingsTab = new RateSettingsTab(holdingsGroup);
         this.cnMappingSettingTab = new CNMappingSettingTab();
         this.uiSettingTab = new UISettingTab();
+        this.apiSettingTab = new APISettingTab();
         TabInfo tabInfo = addTab(rateSettingsTab);
         addTab(cnMappingSettingTab);
         addTab(uiSettingTab);
+        addTab(apiSettingTab);
         tabs.select(tabInfo, true);
     }
 

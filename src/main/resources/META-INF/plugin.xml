@@ -2,7 +2,8 @@
 <idea-plugin>
     <id>cn.fudoc.stock</id>
     <name>FuStock</name>
-    <vendor email="wangdingfu1024@163.com" url="https://github.com/wangdingfu">WANG DINGFU</vendor>
+<!--    <vendor email="wangdingfu1024@163.com" url="https://github.com/wangdingfu">WANG DINGFU</vendor>-->
+    <vendor email="lxhyouth66@gmail.com" url="https://github.com/lxhyouth">WANG DINGFU</vendor>
 
 
     <depends>com.intellij.modules.platform</depends>

@@ -143,6 +143,8 @@ public class FuStockSearchListCellRenderer extends JPanel implements ListCellRen
             return FuIcons.FU_SZ;
         } else if ("HK".equals(jys)) {
             return FuIcons.FU_HK;
+        } else if ("US".equals(jys)) {
+            return FuIcons.FU_US;
         }
         return null;
     }

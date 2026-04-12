@@ -18,14 +18,14 @@ import java.util.*;
  */
 public class StockGroupHideTableView extends AbstractStockTableView {
 
-    private static final String[] stockTableColumn = {"股票代码", "股票名称", "当前价格", "涨跌幅(%)", "成交额"};
+    private static final String[] stockTableColumn = {"股票代码", "股票名称", "当前价格", "涨跌幅(%)", "最高价", "最低价", "成交额"};
     private final StockGroupPersistentState state;
 
     public StockGroupHideTableView(StockGroupInfo stockGroupInfo) {
         super(stockGroupInfo);
         this.state = StockGroupPersistentState.getInstance();
         init(this.state.getStockCodes(groupName()));
-        stockTable.setRowSorter(getSorter(Lists.newArrayList(1, 2, 3)));
+        stockTable.setRowSorter(getSorter(Lists.newArrayList(1, 2, 3, 4, 5)));
         stockTable.setDefaultRenderer(Object.class, new StockColorTableCellRenderer(Lists.newArrayList()));
         TableColumn idColumn = stockTable.getColumnModel().getColumn(0);
         // 从视图中移除，模型仍保留
@@ -67,6 +67,8 @@ public class StockGroupHideTableView extends AbstractStockTableView {
         vector.add(HideTextHelper.mapping(realStockInfo.getStockName(), CNMappingGroupEnum.STOCK_NAME));
         vector.add(realStockInfo.getCurrentPrice());
         vector.add(realStockInfo.getIncreaseRate() + "%");
+        vector.add(realStockInfo.getHighPrice() != null ? realStockInfo.getHighPrice() : "--");
+        vector.add(realStockInfo.getLowPrice() != null ? realStockInfo.getLowPrice() : "--");
         vector.add(realStockInfo.getVolume() + " " + HideTextHelper.mappingUnit(realStockInfo.getVolumeUnit()));
         return vector;
     }

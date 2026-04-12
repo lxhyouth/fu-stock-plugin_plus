@@ -20,6 +20,8 @@ kotlin {
 
 // Configure project's dependencies
 repositories {
+    maven { url = uri("https://maven.aliyun.com/repository/central") }
+    maven { url = uri("https://maven.aliyun.com/repository/public") }
     mavenCentral()
 
     // IntelliJ Platform Gradle Plugin Repositories Extension - read more: https://plugins.jetbrains.com/docs/intellij/tools-intellij-platform-gradle-plugin-repositories-extension.html
@@ -136,6 +138,23 @@ kover {
 tasks {
     wrapper {
         gradleVersion = providers.gradleProperty("gradleVersion").get()
+    }
+
+    // 设置编译编码为 UTF-8
+    withType<JavaCompile> {
+        options.encoding = "UTF-8"
+    }
+
+    withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile> {
+        compilerOptions {
+            jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_21)
+        }
+    }
+
+    test {
+        // Gradle 9+ compatibility: disable the task since we don't have proper unit tests
+        // The existing test file is a manual test with main() method, not a JUnit test
+        enabled = false
     }
 
     publishPlugin {

@@ -10,6 +10,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -85,12 +86,15 @@ public class SinaApiServiceImpl implements SinaApiService {
             return new ArrayList<>();
         }
         
+        System.out.println("[DEBUG Sina API] stockList called with codes: " + codeSet);
+        
         // 转换股票代码为新浪格式
         List<String> sinaCodes = new ArrayList<>();
         Map<String, String> codeMapping = new HashMap<>(); // 记录原始代码和新浪代码的映射
         
         for (String code : codeSet) {
             String sinaCode = convertToSinaCode(code);
+            System.out.println("[DEBUG Sina API] Converting " + code + " -> " + sinaCode);
             if (sinaCode != null) {
                 sinaCodes.add(sinaCode);
                 codeMapping.put(sinaCode, code);
@@ -98,11 +102,13 @@ public class SinaApiServiceImpl implements SinaApiService {
         }
         
         if (sinaCodes.isEmpty()) {
+            System.out.println("[DEBUG Sina API] No valid sina codes, returning empty list");
             return new ArrayList<>();
         }
         
         String codeStr = String.join(",", sinaCodes);
         String requestUrl = BASE_URL + codeStr;
+        System.out.println("[DEBUG Sina API] Request URL: " + requestUrl);
         
         try {
             // 设置请求头，避免被拒绝访问
@@ -116,6 +122,11 @@ public class SinaApiServiceImpl implements SinaApiService {
                     .execute()
                     .body();
             
+            System.out.println("[DEBUG Sina API] Response length: " + (result != null ? result.length() : 0));
+            if (result != null && result.length() < 500) {
+                System.out.println("[DEBUG Sina API] Response preview: " + result);
+            }
+            
             return parseStockSegment(result, codeMapping);
         } catch (Exception e) {
             log.warn("从新浪财经获取股票实时信息异常:{}", e.getMessage());
@@ -127,6 +138,7 @@ public class SinaApiServiceImpl implements SinaApiService {
     /**
      * 将内部股票代码转换为新浪格式
      * usAAPL -> gb_aapl
+     * AAPL -> gb_aapl (兼容不带前缀的情况)
      * sh600519 -> sh600519
      * hk00700 -> hk00700
      */
@@ -147,6 +159,17 @@ public class SinaApiServiceImpl implements SinaApiService {
             return "gb_" + symbol;
         }
         
+        // 兼容不带前缀的美股代码（如 nvda, iq, NVDA, IQ）
+        // 检查是否是纯字母组成的代码（美股特征）
+        if (code.matches("^[a-zA-Z]+$")) {
+            String upperCode = "us" + code.toUpperCase();
+            if (US_STOCK_CODE_MAP.containsKey(upperCode)) {
+                return US_STOCK_CODE_MAP.get(upperCode);
+            }
+            // 通用转换
+            return "gb_" + code.toLowerCase();
+        }
+        
         // A股和港股直接使用
         return code;
     }
@@ -161,32 +184,56 @@ public class SinaApiServiceImpl implements SinaApiService {
      * var hq_str_gb_aapl="Apple Inc.,150.00,149.50,151.00,148.50,150.50,1000000,..."
      */
     private static List<RealStockInfo> parseStockSegment(String result, Map<String, String> codeMapping) {
+        System.out.println("[DEBUG Parse] ===== Start parseStockSegment =====");
+        System.out.println("[DEBUG Parse] Result length: " + (result != null ? result.length() : 0));
+        System.out.println("[DEBUG Parse] Code mapping size: " + codeMapping.size());
+        
         List<RealStockInfo> realStockInfoList = new ArrayList<>();
         
         if (StringUtils.isBlank(result)) {
+            System.out.println("[DEBUG Parse] Result is blank");
             return realStockInfoList;
         }
         
         String[] lines = result.split("\n");
+        System.out.println("[DEBUG Parse] Lines count: " + lines.length);
+        
         for (String line : lines) {
             if (StringUtils.isBlank(line) || !line.contains("=")) {
                 continue;
             }
             
             try {
+                System.out.println("[DEBUG Parse] Processing line: " + line.substring(0, Math.min(50, line.length())));
+                
                 // 提取股票代码和数据
                 String codePart = line.substring(0, line.indexOf("="));
                 String dataPart = line.substring(line.indexOf("=") + 2, line.length() - 1);
                 
-                // 提取新浪代码
-                String sinaCode = codePart.substring(codePart.lastIndexOf("_") + 1);
+                System.out.println("[DEBUG Parse] codePart: " + codePart);
+                System.out.println("[DEBUG Parse] dataPart length: " + dataPart.length());
+                
+                // 提取新浪代码：var hq_str_gb_iq -> gb_iq
+                // 格式固定为：var hq_str_XXX，需要提取 hq_str_ 后面的部分
+                String prefix = "hq_str_";
+                int prefixIndex = codePart.indexOf(prefix);
+                if (prefixIndex == -1) {
+                    System.err.println("[ERROR Parse] Invalid code format: " + codePart);
+                    continue;
+                }
+                String sinaCode = codePart.substring(prefixIndex + prefix.length());
+                System.out.println("[DEBUG Parse] sinaCode: " + sinaCode);
                 
                 // 转换为原始代码
                 String originalCode = codeMapping.getOrDefault(sinaCode, sinaCode);
+                System.out.println("[DEBUG Parse] originalCode: " + originalCode);
                 
                 // 解析数据
                 String[] values = dataPart.split(",");
+                System.out.println("[DEBUG Parse] values length: " + values.length);
+                
                 if (values.length < 4) {
+                    System.out.println("[DEBUG Parse] values length < 4, skip");
                     continue;
                 }
                 
@@ -195,19 +242,26 @@ public class SinaApiServiceImpl implements SinaApiService {
                 
                 // 判断是美股还是A股/港股
                 if (sinaCode.startsWith("gb_")) {
+                    System.out.println("[DEBUG Parse] Detected US stock (gb_)");
                     // 美股数据格式
                     parseUSStockData(bean, values);
                 } else {
+                    System.out.println("[DEBUG Parse] Detected CN/HK stock");
                     // A股/港股数据格式
                     parseCNHKStockData(bean, values);
                 }
                 
                 realStockInfoList.add(bean);
+                System.out.println("[DEBUG Parse] Added stock: " + bean.getStockName());
             } catch (Exception e) {
+                System.err.println("[ERROR Parse] Exception: " + e.getMessage());
+                e.printStackTrace();
                 log.warn("解析股票数据失败: {}", line, e);
             }
         }
         
+        System.out.println("[DEBUG Parse] Total stocks parsed: " + realStockInfoList.size());
+        System.out.println("[DEBUG Parse] ===== End parseStockSegment =====");
         return realStockInfoList;
     }
 
@@ -250,36 +304,88 @@ public class SinaApiServiceImpl implements SinaApiService {
 
     /**
      * 解析美股数据
-     * values[0]: 股票名称
-     * values[1]: 当前价格
-     * values[2]: 涨跌额
-     * values[3]: 涨跌幅%
-     * values[4]: 成交量
-     * values[5]: 最新成交时间
-     * values[6]: 开盘价
-     * values[7]: 最高价
-     * values[8]: 最低价
-     * values[9]: 昨日收盘价
+     * 根据实际API返回数据分析：
+     * values[0]: 股票名称 (爱奇艺)
+     * values[1]: 当前价格 (1.2500)
+     * values[2]: 涨跌幅% (-2.34)
+     * values[3]: 时间 (2026-04-11 06:44:39)
+     * values[4]: 涨跌额 (-0.0300)
+     * values[5]: 开盘价 (1.2900)
+     * values[6]: 最高价 (1.3000)
+     * values[7]: 最低价 (1.2500)
+     * values[8]: 52周最高 (2.8400)
+     * values[9]: 52周最低 (1.1800)
+     * values[10]: 成交量-手 (6894075)
+     * values[11]: 成交量-股 (9949621)
+     * values[12]: 未知字段
+     * ...
+     * values[30]: 成交额 (美元) - 所有美股统一使用此字段
      */
     private static void parseUSStockData(RealStockInfo bean, String[] values) {
+        System.out.println("[DEBUG Sina US] ===== Parsing US Stock Data =====");
+        System.out.println("[DEBUG Sina US] Stock name: " + values[0]);
+        System.out.println("[DEBUG Sina US] Total values count: " + values.length);
+        System.out.println("[DEBUG Sina US] Current price (values[1]): " + values[1]);
+        System.out.println("[DEBUG Sina US] Increase rate% (values[2]): " + values[2]);
+        
+        // 打印所有字段及其索引
+        StringBuilder allFields = new StringBuilder();
+        for (int i = 0; i < values.length; i++) {
+            allFields.append("[").append(i).append("]=").append(values[i]).append(" | ");
+        }
+        System.out.println("[DEBUG Sina US] All fields: " + allFields.toString());
+        
         bean.setStockName(values[0]);
         bean.setCurrentPrice(values[1]);
-        bean.setYesterdayPrice(values.length > 9 ? values[9] : "");
         
-        // 涨跌幅
-        if (values.length > 3 && StringUtils.isNotBlank(values[3])) {
-            bean.setIncreaseRate(values[3]);
+        // 最高价 (values[6])
+        if (values.length > 6 && StringUtils.isNotBlank(values[6])) {
+            bean.setHighPrice(values[6]);
         }
         
-        // 成交量/额
-        if (values.length > 4) {
-            String[] volume = formatVolume(values[4]);
-            bean.setVolume(volume[0]);
-            bean.setVolumeUnit(volume[1]);
+        // 最低价 (values[7])
+        if (values.length > 7 && StringUtils.isNotBlank(values[7])) {
+            bean.setLowPrice(values[7]);
+        }
+        
+        // 涨跌幅 (values[2])
+        if (values.length > 2 && StringUtils.isNotBlank(values[2])) {
+            bean.setIncreaseRate(values[2]);
+        }
+        
+        // 昨日收盘价 = 当前价格 - 涨跌额
+        if (values.length > 4 && StringUtils.isNotBlank(values[4]) && StringUtils.isNotBlank(values[1])) {
+            try {
+                BigDecimal currentPrice = new BigDecimal(values[1]);
+                BigDecimal change = new BigDecimal(values[4]);
+                BigDecimal yesterdayPrice = currentPrice.subtract(change);
+                bean.setYesterdayPrice(yesterdayPrice.toString());
+            } catch (Exception e) {
+                bean.setYesterdayPrice("");
+            }
+        }
+        
+        // 成交额：统一使用 values[30]
+        if (values.length > 30 && StringUtils.isNotBlank(values[30])) {
+            try {
+                System.out.println("[DEBUG Sina US] Using values[30] for amount: " + values[30]);
+                String[] formattedAmount = formatVolume(values[30]);
+                bean.setVolume(formattedAmount[0]);
+                bean.setVolumeUnit(formattedAmount[1]);
+                System.out.println("[DEBUG Sina US] Formatted amount: " + formattedAmount[0] + formattedAmount[1]);
+            } catch (Exception e) {
+                System.err.println("[ERROR Sina US] Failed to format amount from values[30]: " + e.getMessage());
+                log.warn("格式化美股成交额失败: {}", e.getMessage());
+                bean.setVolume("---");
+                bean.setVolumeUnit("");
+            }
         } else {
+            System.out.println("[DEBUG Sina US] values[30] not available, length=" + values.length);
             bean.setVolume("---");
             bean.setVolumeUnit("");
         }
+        
+        System.out.println("[DEBUG Sina US] ===== End Parsing =====");
     }
 
     /**
@@ -299,10 +405,10 @@ public class SinaApiServiceImpl implements SinaApiService {
             }
             
             BigDecimal increase = current.subtract(yesterday)
-                    .divide(yesterday, 4, BigDecimal.ROUND_HALF_UP)
+                    .divide(yesterday, 4, RoundingMode.HALF_UP)
                     .multiply(new BigDecimal("100"));
             
-            return FuNumberUtil.format(increase.setScale(2, BigDecimal.ROUND_HALF_UP));
+            return FuNumberUtil.format(increase.setScale(2, RoundingMode.HALF_UP));
         } catch (Exception e) {
             return "0";
         }
@@ -310,6 +416,7 @@ public class SinaApiServiceImpl implements SinaApiService {
 
     /**
      * 格式化成交量/额
+     * 所有单位都保留两位小数
      */
     private static String[] formatVolume(String volume) {
         if (StringUtils.isEmpty(volume) || !NumberUtil.isNumber(volume)) {
@@ -318,10 +425,19 @@ public class SinaApiServiceImpl implements SinaApiService {
         
         try {
             BigDecimal bigDecimal = new BigDecimal(volume);
-            if (bigDecimal.compareTo(Y) < 0) {
-                return new String[]{volume, "万"};
+            BigDecimal hundredMillion = new BigDecimal("100000000"); // 亿
+            BigDecimal tenThousand = new BigDecimal("10000");         // 万
+            
+            if (bigDecimal.compareTo(hundredMillion) >= 0) {
+                // >= 1亿，显示为“亿”，保疙2位小数
+                return new String[]{FuNumberUtil.format(NumberUtil.div(bigDecimal, hundredMillion, 2)), "亿"};
+            } else if (bigDecimal.compareTo(tenThousand) >= 0) {
+                // >= 1万，显示为“万”，保疙2位小数
+                return new String[]{FuNumberUtil.format(NumberUtil.div(bigDecimal, tenThousand, 2)), "万"};
+            } else {
+                // < 1万，直接显示，保疙2位小数
+                return new String[]{FuNumberUtil.format(bigDecimal.setScale(2, RoundingMode.HALF_UP)), ""};
             }
-            return new String[]{FuNumberUtil.format(NumberUtil.div(bigDecimal, Y, 2)), "亿"};
         } catch (Exception e) {
             return new String[]{"---", ""};
         }

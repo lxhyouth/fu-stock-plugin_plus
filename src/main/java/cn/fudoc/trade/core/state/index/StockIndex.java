@@ -54,8 +54,19 @@ public class StockIndex {
             this.firstMap = new HashMap<>(stockInfoList.size() * 2);
             this.nameMap = new HashMap<>(stockInfoList.size());
         }
+        
+        // 调试日志：打印美股数据加载情况
+        if (isUS && stockInfoList != null) {
+            System.out.println("[DEBUG] US Stock Index: Loading " + stockInfoList.size() + " stocks");
+            if (!stockInfoList.isEmpty()) {
+                StockInfo first = stockInfoList.get(0);
+                System.out.println("[DEBUG] First US stock - code: " + first.getCode() + ", name: " + first.getName() + ", jys: " + first.getJys() + ", stockCode: " + first.getStockCode());
+            }
+        }
+        
         for (StockInfo stockInfo : stockInfoList) {
             String code = stockInfo.getCode();
+            String stockCode = stockInfo.getStockCode(); // 带前缀的完整代码
             String name = stockInfo.getName();
             if (StringUtils.isBlank(code) || StringUtils.isBlank(name)) {
                 continue;
@@ -75,6 +86,27 @@ public class StockIndex {
             }
             //名称
             nameMap.put(name.trim(), code);
+            
+            // 对于美股，额外添加股票代码到首字母映射，支持通过代码搜索
+            if (isUS && StringUtils.isNotBlank(stockCode)) {
+                // 添加带前缀的完整代码（如 usnvda）
+                String lowerFullCode = stockCode.toLowerCase();
+                Set<String> fullCodeSet = firstMap.get(lowerFullCode);
+                if (Objects.isNull(fullCodeSet)) {
+                    fullCodeSet = new HashSet<>();
+                    firstMap.put(lowerFullCode, fullCodeSet);
+                }
+                fullCodeSet.add(code);
+                
+                // 同时添加不带前缀的代码部分（如 nvda）
+                String symbolOnly = code.toLowerCase();
+                Set<String> symbolSet = firstMap.get(symbolOnly);
+                if (Objects.isNull(symbolSet)) {
+                    symbolSet = new HashSet<>();
+                    firstMap.put(symbolOnly, symbolSet);
+                }
+                symbolSet.add(code);
+            }
         }
     }
 
@@ -82,6 +114,11 @@ public class StockIndex {
     public List<MatchResult> match(String keyword) {
         if (StringUtils.isBlank(keyword) || MapUtils.isEmpty(codeMap)) {
             return Lists.newArrayList();
+        }
+
+        // 调试日志：美股搜索
+        if (isUS) {
+            System.out.println("[DEBUG] US Stock Search: keyword='" + keyword + "', codeMap size=" + codeMap.size() + ", firstMap size=" + firstMap.size());
         }
 
         List<MatchResult> matchResultList = new ArrayList<>();
@@ -113,14 +150,14 @@ public class StockIndex {
                 return Lists.newArrayList();
             }
             //首字母匹配
-            Set<String> codeSet = firstMap.get(keyword);
+            Set<String> codeSet = firstMap.get(keyword.toLowerCase());
             if (CollectionUtils.isNotEmpty(codeSet)) {
                 matchFirstMap(codeSet, matchResultList, 1D);
                 return matchResultList;
             }
             int keyWordLength = keyword.length();
             firstMap.forEach((n, c) -> {
-                if (n.contains(keyword)) {
+                if (n.contains(keyword.toLowerCase())) {
                     double similarity = NumberUtil.div(keyWordLength, n.length());
                     matchFirstMap(c, matchResultList, similarity);
                 }
@@ -152,7 +189,7 @@ public class StockIndex {
     private List<MatchResult> match(String keyword, Map<String, String> map) {
         String code = map.get(keyword);
         if (StringUtils.isNotBlank(code)) {
-            StockInfo stockInfo = codeMap.get(keyword);
+            StockInfo stockInfo = codeMap.get(code);
             if (stockInfo != null) {
                 //完全匹配
                 return Lists.newArrayList(new MatchResult(stockInfo, 1D));
@@ -160,8 +197,11 @@ public class StockIndex {
         }
         int keyWordLength = keyword.length();
         List<MatchResult> matchResultList = Lists.newArrayList();
+        // 对于美股，使用不区分大小写的模糊匹配
+        String lowerKeyword = isUS ? keyword.toLowerCase() : keyword;
         map.forEach((n, c) -> {
-            if (n.contains(keyword)) {
+            String lowerName = isUS ? n.toLowerCase() : n;
+            if (lowerName.contains(lowerKeyword)) {
                 StockInfo stockInfo = codeMap.get(c);
                 if (Objects.nonNull(stockInfo)) {
                     matchResultList.add(new MatchResult(stockInfo, NumberUtil.div(keyWordLength, n.length())));
@@ -183,6 +223,11 @@ public class StockIndex {
 
     private Set<String> getFirstPinyin(String name) {
         name = name.trim().replace("*", "").replace("ST", "");
+        // 对于美股英文名称，直接使用代码作为搜索关键字
+        if (isUS) {
+            // 美股：返回空集合，让名称映射来处理
+            return null;
+        }
         return PinyinUtil.getFirstLetter(name);
     }
 
